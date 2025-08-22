@@ -1,0 +1,78 @@
+hub:
+  config:
+    JupyterHub:
+      authenticator_class: dummy
+    DummyAuthenticator:
+      password: jupyter123
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m  # Reduced from 500m
+      memory: 512Mi
+  service:
+    type: LoadBalancer
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
+proxy:
+  secretToken: "your-secret-token-here-change-this-before-production"
+  service:
+    type: LoadBalancer
+  https:
+    enabled: false
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
+singleuser:
+  image:
+    name: jupyter/datascience-notebook
+    tag: "latest"
+  defaultUrl: "/lab"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1  # Reduced from 2
+      memory: 2Gi  # Reduced from 4Gi
+  storage:
+    dynamic:
+      storageClass: longhorn
+      accessModes:
+        - ReadWriteOnce
+    capacity: 10Gi
+  extraEnv:
+    AWS_ENDPOINT_URL: "http://localstack.localstack.svc.cluster.local:4566"
+    AWS_ACCESS_KEY_ID: "test"
+    AWS_SECRET_ACCESS_KEY: "test"
+    AWS_DEFAULT_REGION: "us-east-1"
+    MLFLOW_TRACKING_URI: "http://mlflow.mlflow.svc.cluster.local:5000"
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
+scheduling:
+  userScheduler:
+    enabled: false
+
+# Prevent issues with single node setup
+singleuser:
+  cpu:
+    limit: 1
+    guarantee: 0.1
+  memory:
+    limit: 2G
+    guarantee: 512M

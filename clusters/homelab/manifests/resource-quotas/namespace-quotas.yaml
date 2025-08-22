@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: data-quota
+  namespace: data
+spec:
+  hard:
+    requests.cpu: "1"      # Reduced for single node
+    requests.memory: 4Gi   # Reduced from 8Gi
+    limits.cpu: "2"        # Reduced from 4
+    limits.memory: 6Gi     # Reduced from 12Gi
+    persistentvolumeclaims: "10"
+    requests.storage: 100Gi  # Reduced from 200Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: localstack-quota
+  namespace: localstack
+spec:
+  hard:
+    requests.cpu: "500m"   # Reduced
+    requests.memory: 2Gi   # Same
+    limits.cpu: "1"        # Reduced from 3
+    limits.memory: 3Gi     # Reduced from 4Gi
+    persistentvolumeclaims: "5"
+    requests.storage: 20Gi  # Reduced from 50Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mlflow-quota
+  namespace: mlflow
+spec:
+  hard:
+    requests.cpu: "200m"   # Reduced from 500m
+    requests.memory: 512Mi # Reduced from 1Gi
+    limits.cpu: "500m"     # Reduced from 2
+    limits.memory: 1Gi     # Reduced from 3Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: kubeflow-quota
+  namespace: kubeflow
+spec:
+  hard:
+    requests.cpu: "2"      # Reduced from 4
+    requests.memory: 4Gi   # Reduced from 8Gi
+    limits.cpu: "4"        # Reduced from 8
+    limits.memory: 8Gi     # Reduced from 16Gi
+    persistentvolumeclaims: "15"  # Reduced from 20
+    requests.storage: 50Gi  # Reduced from 100Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: monitoring-quota
+  namespace: monitoring
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 2Gi
+    limits.cpu: "2"
+    limits.memory: 4Gi
+    persistentvolumeclaims: "5"
+    requests.storage: 50Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: jupyter-quota
+  namespace: jupyter
+spec:
+  hard:
+    requests.cpu: "500m"
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 4Gi
+    persistentvolumeclaims: "10"
+    requests.storage: 50Gi

@@ -3,21 +3,19 @@ kind: Application
 metadata:
   name: localstack
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
-  source:
-    repoURL: https://helm.localstack.cloud
-    chart: localstack
-    targetRevision: 0.6.17
-    helm:
-      valueFiles:
-        - $values/clusters/homelab/values/localstack-values.yaml
   sources:
     - repoURL: https://helm.localstack.cloud
       chart: localstack
       targetRevision: 0.6.17
+      helm:
+        valueFiles:
+          - $values/clusters/homelab/values/localstack-values.yaml
     - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
       targetRevision: main
       ref: values

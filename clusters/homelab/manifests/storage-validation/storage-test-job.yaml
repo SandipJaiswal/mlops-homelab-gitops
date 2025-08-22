@@ -1,0 +1,133 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: storage-validation
+  namespace: default
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        kubernetes.io/hostname: t495
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: storage-test
+        image: busybox:1.35
+        command:
+        - sh
+        - -c
+        - |
+          echo "Testing Longhorn storage..."
+          
+          # Wait for Longhorn storage class
+          until kubectl get storageclass longhorn; do
+            echo "Waiting for Longhorn storage class..."
+            sleep 10
+          done
+          
+          echo "✓ Longhorn storage class found"
+          
+          # Create test PVC
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: storage-test-pvc
+            namespace: default
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: longhorn
+            resources:
+              requests:
+                storage: 1Gi
+          EOF
+          
+          # Wait for PVC to be bound
+          timeout 300 bash -c 'until kubectl get pvc storage-test-pvc -o jsonpath="{.status.phase}" | grep -q Bound; do sleep 10; done'
+          
+          echo "✓ Test PVC created and bound successfully"
+          
+          # Create test pod
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: storage-test-pod
+            namespace: default
+          spec:
+            nodeSelector:
+              kubernetes.io/hostname: t495
+            tolerations:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+                effect: NoSchedule
+            containers:
+            - name: test
+              image: busybox:1.35
+              command: ["sleep", "60"]
+              volumeMounts:
+              - name: test-vol
+                mountPath: /data
+            volumes:
+            - name: test-vol
+              persistentVolumeClaim:
+                claimName: storage-test-pvc
+          EOF
+          
+          # Wait for pod to be ready
+          timeout 180 bash -c 'until kubectl get pod storage-test-pod -o jsonpath="{.status.phase}" | grep -q Running; do sleep 10; done'
+          
+          # Test write operation
+          kubectl exec storage-test-pod -- sh -c "echo 'Storage test successful' > /data/test.txt"
+          kubectl exec storage-test-pod -- sh -c "cat /data/test.txt"
+          
+          echo "✓ Storage validation completed successfully"
+          
+          # Cleanup
+          kubectl delete pod storage-test-pod --ignore-not-found=true
+          kubectl delete pvc storage-test-pvc --ignore-not-found=true
+          
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+      # Add kubectl access
+      serviceAccountName: storage-validation
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: storage-validation
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: storage-validation
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims", "pods"]
+  verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: storage-validation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: storage-validation
+subjects:
+- kind: ServiceAccount
+  name: storage-validation
+  namespace: default

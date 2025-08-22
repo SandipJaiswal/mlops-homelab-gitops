@@ -1,3 +1,7 @@
+# Prevent pre-upgrade race conditions
+preUpgradeChecker:
+  jobEnabled: false
+
 defaultSettings:
   defaultReplicaCount: 1
   replicaSoftAntiAffinity: false
@@ -6,22 +10,38 @@ defaultSettings:
   defaultDataPath: /var/lib/longhorn
   storageOverProvisioningPercentage: 200
   storageMinimalAvailablePercentage: 10
+  guaranteedEngineManagerCPU: 12
+  guaranteedReplicaManagerCPU: 12
+  upgradeChecker: false
+  nodeDownPodDeletionPolicy: delete-both-statefulset-and-deployment-pod
 
 persistence:
   defaultClass: true
   defaultClassReplicaCount: 1
 
-# CRITICAL: Disable pre-upgrade job
-preUpgradeChecker:
-  jobEnabled: false
-
 longhornManager:
-  tolerations: []
-  nodeSelector: {}
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  nodeSelector:
+    kubernetes.io/hostname: t495
 
 longhornDriver:
-  tolerations: []
-  nodeSelector: {}
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  nodeSelector:
+    kubernetes.io/hostname: t495
+
+longhornUI:
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  nodeSelector:
+    kubernetes.io/hostname: t495
 
 resources:
   limits:
@@ -31,24 +51,11 @@ resources:
     cpu: 100m
     memory: 256Mi
 
-ingress:
-  enabled: false
+# Post-install hook to configure node disk
+csi:
+  kubeletRootDir: /var/lib/kubelet
 
-# Node configuration via Helm extraResources
-extraResources:
-  - apiVersion: longhorn.io/v1beta2
-    kind: Node
-    metadata:
-      name: t495  # Replace with your actual node name
-      namespace: longhorn-system
-    spec:
-      allowScheduling: true
-      evictionRequested: false
-      disks:
-        default-disk:
-          allowScheduling: true
-          evictionRequested: false
-          path: /var/lib/longhorn
-          storageReserved: 21474836480
-          tags: []
-      tags: []
+# Enable metrics
+metrics:
+  serviceMonitor:
+    enabled: true

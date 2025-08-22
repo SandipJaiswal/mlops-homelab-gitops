@@ -1,16 +1,51 @@
 auth:
   enabled: false
+
 master:
   persistence:
     enabled: true
     storageClass: longhorn
+    accessModes:
+      - ReadWriteOnce
     size: 5Gi
   resources:
     requests:
       cpu: 50m
       memory: 128Mi
     limits:
-      cpu: 200m
-      memory: 512Mi
+      cpu: 100m  # Reduced from 200m
+      memory: 256Mi  # Reduced from 512Mi
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
 replica:
-  replicaCount: 0
+  replicaCount: 0  # Single node setup
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi
+
+# Performance tuning for single node
+sysctlImage:
+  enabled: false
+
+# Disable cluster mode
+cluster:
+  enabled: false
+
+# Configure for single node
+sentinel:
+  enabled: false

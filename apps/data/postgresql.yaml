@@ -3,11 +3,13 @@ kind: Application
 metadata:
   name: postgresql
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
-  sources:  # ← Only sources, remove single source
+  sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: postgresql
       targetRevision: 15.5.24

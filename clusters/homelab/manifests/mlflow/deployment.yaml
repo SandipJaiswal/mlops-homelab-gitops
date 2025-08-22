@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: t495
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      initContainers:
+      - name: wait-for-storage
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          echo "Waiting for storage to be ready..."
+          until [ -f /tmp/storage-ready ]; do
+            if kubectl get storageclass longhorn &>/dev/null; then
+              echo "✓ Longhorn storage class found"
+              touch /tmp/storage-ready
+            else
+              echo "Waiting for Longhorn storage class..."
+              sleep 10
+            fi
+          done
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: wait-for-postgres
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          until nc -z postgresql.data.svc.cluster.local 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 5
+          done
+          echo "✓ PostgreSQL is ready"
+      - name: wait-for-minio
+        image: busybox:1.35
+        command: ['sh', '-c']
+        args:
+        - |
+          until nc -z minio.data.svc.cluster.local 9000; do
+            echo "Waiting for MinIO..."
+            sleep 5
+          done
+          echo "✓ MinIO is ready"
+      containers:
+      - name: mlflow
+        image: ghcr.io/mlflow/mlflow:2.14.1
+        ports:
+        - containerPort: 5000
+        env:
+        - name: BACKEND_STORE_URI
+          value: "postgresql://mlflow:mlflowpw@postgresql.data.svc.cluster.local:5432/mlflow"
+        - name: ARTIFACT_ROOT
+          value: "s3://mlflow/"
+        - name: AWS_ACCESS_KEY_ID
+          value: "minio"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "minio123"
+        - name: MLFLOW_S3_ENDPOINT_URL
+          value: "http://minio.data.svc.cluster.local:9000"
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        - name: AWS_S3_ADDRESSING_STYLE
+          value: "path"
+        command: ["mlflow", "server"]
+        args:
+        - "--backend-store-uri=$(BACKEND_STORE_URI)"
+        - "--default-artifact-root=$(ARTIFACT_ROOT)"
+        - "--host=0.0.0.0"
+        - "--port=5000"
+        - "--serve-artifacts"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 300m  # Reduced from 500m
+            memory: 512Mi  # Reduced from 1Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

@@ -3,8 +3,14 @@ kind: Application
 metadata:
   name: longhorn
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: >
+      SkipDryRunOnMissingResource=true,
+      RespectIgnoreDifferences=true,
+      PrunePropagationPolicy=foreground
 spec:
   project: default
   sources:
@@ -22,11 +28,12 @@ spec:
     namespace: longhorn-system
   syncPolicy:
     automated:
-      prune: false
+      prune: false  # Never auto-prune storage
       selfHeal: false
     syncOptions:
       - CreateNamespace=true
       - RespectIgnoreDifferences=true
+      - Replace=true
     managedNamespaceMetadata:
       labels:
         pod-security.kubernetes.io/enforce: privileged
@@ -45,3 +52,9 @@ spec:
     - group: longhorn.io
       kind: Replica
       jsonPointers: ["/status"]
+    - group: longhorn.io
+      kind: InstanceManager
+      jsonPointers: ["/status"]
+    - group: ""
+      kind: PersistentVolume
+      jsonPointers: ["/spec/claimRef/resourceVersion", "/spec/claimRef/uid", "/status"]
