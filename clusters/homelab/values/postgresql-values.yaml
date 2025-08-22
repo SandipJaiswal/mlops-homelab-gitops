@@ -1,0 +1,17 @@
+auth:
+  postgresPassword: postgrespw
+  database: postgres
+primary:
+  persistence:
+    enabled: true
+    storageClass: longhorn
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+metrics:
+  enabled: false

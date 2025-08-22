@@ -7,17 +7,13 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
 spec:
   project: default
-  source:
-    repoURL: https://metallb.github.io/metallb
-    chart: metallb
-    targetRevision: 0.14.5
-    helm:
-      valueFiles:
-        - $values/clusters/homelab/values/metallb-values.yaml
-  sources:
+  sources:  # ← Only use sources, remove single source
     - repoURL: https://metallb.github.io/metallb
       chart: metallb
       targetRevision: 0.14.5
+      helm:
+        valueFiles:
+          - $values/clusters/homelab/values/metallb-values.yaml
     - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
       targetRevision: main
       ref: values
