@@ -1,0 +1,14 @@
+persistence:
+  enabled: true
+  storageClass: longhorn
+  size: 20Gi
+service:
+  type: LoadBalancer
+  port: 5000
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 512Mi

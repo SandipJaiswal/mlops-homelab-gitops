@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: docker-registry
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.twun.io
+      chart: docker-registry
+      targetRevision: 2.2.3
+      helm:
+        valueFiles:
+          - $values/clusters/homelab/values/docker-registry-values.yaml
+    - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
