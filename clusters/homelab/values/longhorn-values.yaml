@@ -13,6 +13,10 @@ persistence:
 
 preUpgradeChecker:
   jobEnabled: false  # Prevent upgrade conflicts
+# Disable pre-upgrade hook to avoid the service account race condition
+preUpgrade:
+  enabled: false
+
 
 longhornManager:
   tolerations: []
