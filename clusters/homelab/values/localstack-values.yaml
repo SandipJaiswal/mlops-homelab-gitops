@@ -15,8 +15,8 @@ resources:
     cpu: 200m
     memory: 1Gi
   limits:
-    cpu: 1      # Reduced from 2
-    memory: 2Gi  # Reduced from 3Gi
+    cpu: 1
+    memory: 2Gi
 
 service:
   type: LoadBalancer
@@ -35,20 +35,14 @@ extraEnvVars:
     value: "1"
   - name: PERSISTENCE
     value: "1"
+  # FIXED: Use local executor instead of docker
   - name: LAMBDA_EXECUTOR
-    value: "docker"
-  - name: DOCKER_HOST
-    value: "unix:///var/run/docker.sock"
+    value: "local"  # Changed from "docker"
+  # REMOVED: DOCKER_HOST environment variable
 
-volumes:
-  - name: docker-sock
-    hostPath:
-      path: /var/run/docker.sock
-      type: Socket
-
-volumeMounts:
-  - name: docker-sock
-    mountPath: /var/run/docker.sock
+# REMOVED: Docker socket volume mounting
+# volumes: []
+# volumeMounts: []
 
 # Readiness probe
 readinessProbe:
@@ -69,3 +63,5 @@ livenessProbe:
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
+
+# Keep only LoadBalancer services that need external access

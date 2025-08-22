@@ -1,0 +1,97 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: longhorn-node-config
+  namespace: longhorn-system
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: longhorn-node-config
+      nodeSelector:
+        kubernetes.io/hostname: t495
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: node-config
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Configuring Longhorn node disk..."
+          
+          # Wait for Longhorn node to be detected
+          until kubectl get nodes.longhorn.io t495 -n longhorn-system; do
+            echo "Waiting for Longhorn node to be detected..."
+            sleep 10
+          done
+          
+          # Configure disk on the node
+          kubectl patch nodes.longhorn.io t495 -n longhorn-system --type='merge' -p='{
+            "spec": {
+              "disks": {
+                "default-disk": {
+                  "allowScheduling": true,
+                  "evictionRequested": false,
+                  "path": "/var/lib/longhorn",
+                  "storageReserved": 21474836480,
+                  "tags": []
+                }
+              }
+            }
+          }'
+          
+          echo "✓ Longhorn node disk configured"
+          
+          # Restart longhorn manager to pick up changes
+          kubectl rollout restart daemonset/longhorn-manager -n longhorn-system
+          
+          echo "✓ Longhorn manager restarted"
+          
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: longhorn-node-config
+  namespace: longhorn-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: longhorn-node-config
+rules:
+- apiGroups: ["longhorn.io"]
+  resources: ["nodes"]
+  verbs: ["get", "list", "patch", "update"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets"]
+  verbs: ["get", "list", "patch", "update"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets/status"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: longhorn-node-config
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: longhorn-node-config
+subjects:
+- kind: ServiceAccount
+  name: longhorn-node-config
+  namespace: longhorn-system

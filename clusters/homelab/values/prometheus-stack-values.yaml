@@ -11,16 +11,28 @@ grafana:
       cpu: 100m
       memory: 256Mi
     limits:
-      cpu: 200m  # Reduced from 500m
+      cpu: 200m
       memory: 512Mi
+  # FIXED: Change to ClusterIP to avoid port conflicts
   service:
-    type: LoadBalancer
+    type: ClusterIP  # Changed from LoadBalancer
+    port: 80
   nodeSelector:
     kubernetes.io/hostname: t495
   tolerations:
     - key: node-role.kubernetes.io/control-plane
       operator: Exists
       effect: NoSchedule
+  # Add ingress for external access
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+    hosts:
+      - grafana.local
+    path: /
+    tls: []
 
 prometheus:
   prometheusSpec:
@@ -31,7 +43,7 @@ prometheus:
         cpu: 200m
         memory: 1Gi
       limits:
-        cpu: 500m  # Reduced from 1
+        cpu: 500m
         memory: 2Gi
     storageSpec:
       volumeClaimTemplate:
@@ -47,22 +59,20 @@ prometheus:
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
+    # FIXED: Reduce scrape interval to avoid overload
     additionalScrapeConfigs:
     - job_name: 'localstack'
       static_configs:
       - targets: ['localstack.localstack.svc.cluster.local:4566']
       metrics_path: '/_localstack/health'
-      scrape_interval: 30s
+      scrape_interval: 60s  # Increased from 30s
+      scrape_timeout: 10s
     - job_name: 'mlflow'
       static_configs:
       - targets: ['mlflow.mlflow.svc.cluster.local:5000']
       metrics_path: '/metrics'
-      scrape_interval: 30s
-    - job_name: 'minio'
-      static_configs:
-      - targets: ['minio.data.svc.cluster.local:9000']
-      metrics_path: '/metrics'
-      scrape_interval: 30s
+      scrape_interval: 60s
+      scrape_timeout: 10s
 
 alertmanager:
   alertmanagerSpec:
@@ -79,7 +89,7 @@ alertmanager:
         cpu: 50m
         memory: 128Mi
       limits:
-        cpu: 100m  # Reduced from 200m
+        cpu: 100m
         memory: 256Mi
     nodeSelector:
       kubernetes.io/hostname: t495

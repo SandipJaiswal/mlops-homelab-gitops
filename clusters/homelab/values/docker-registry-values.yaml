@@ -1,10 +1,15 @@
 persistence:
   enabled: true
   storageClass: longhorn
+  accessModes:
+    - ReadWriteOnce
   size: 20Gi
+
+# FIXED: Change to ClusterIP to avoid port conflicts
 service:
-  type: LoadBalancer
+  type: ClusterIP  # Changed from LoadBalancer
   port: 5000
+
 resources:
   requests:
     cpu: 50m
@@ -12,3 +17,49 @@ resources:
   limits:
     cpu: 200m
     memory: 512Mi
+
+nodeSelector:
+  kubernetes.io/hostname: t495
+
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+configData:
+  version: 0.1
+  log:
+    fields:
+      service: registry
+  storage:
+    cache:
+      blobdescriptor: inmemory
+    filesystem:
+      rootdirectory: /var/lib/registry
+  http:
+    addr: :5000
+    headers:
+      X-Content-Type-Options: [nosniff]
+  health:
+    storagedriver:
+      enabled: true
+      interval: 10s
+      threshold: 3
+
+metrics:
+  enabled: true
+  port: 5001
+  path: /metrics
+
+# Add ingress for external access
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  hosts:
+    - host: registry.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
