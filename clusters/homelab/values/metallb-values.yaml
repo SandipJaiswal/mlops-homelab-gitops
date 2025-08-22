@@ -1,0 +1,39 @@
+crds:
+  enabled: true
+
+configInline: {}
+
+# Post-install configuration via extraResources
+extraResources:
+  - apiVersion: metallb.io/v1beta1
+    kind: IPAddressPool
+    metadata:
+      name: homelab-pool
+      namespace: metallb-system
+    spec:
+      addresses:
+        - 192.168.1.240-192.168.1.250  # TODO: Configure for your network
+  - apiVersion: metallb.io/v1beta1
+    kind: L2Advertisement
+    metadata:
+      name: homelab-l2
+      namespace: metallb-system
+    spec:
+      ipAddressPools:
+        - homelab-pool
+
+resources:
+  controller:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  speaker:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi

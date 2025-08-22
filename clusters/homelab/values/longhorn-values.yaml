@@ -1,0 +1,31 @@
+defaultSettings:
+  defaultReplicaCount: 1
+  replicaSoftAntiAffinity: false
+  createDefaultDiskLabeledNodes: true
+  createDefaultDiskOnLabeledNodes: true
+  defaultDataPath: /var/lib/longhorn
+  storageOverProvisioningPercentage: 200
+  storageMinimalAvailablePercentage: 10
+
+persistence:
+  defaultClass: true
+  defaultClassReplicaCount: 1
+
+preUpgradeChecker:
+  jobEnabled: false  # Prevent upgrade conflicts
+
+longhornManager:
+  tolerations: []
+  nodeSelector: {}
+
+longhornDriver:
+  tolerations: []
+  nodeSelector: {}
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi

@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: longhorn
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://charts.longhorn.io
+    chart: longhorn
+    targetRevision: 1.6.2
+    helm:
+      valueFiles:
+        - $values/clusters/homelab/values/longhorn-values.yaml
+  sources:
+    - repoURL: https://charts.longhorn.io
+      chart: longhorn
+      targetRevision: 1.6.2
+    - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: longhorn-system
+  syncPolicy:
+    automated:
+      prune: false  # Never auto-prune storage
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+  ignoreDifferences:
+    - group: longhorn.io
+      kind: Node
+      jsonPointers: ["/status", "/spec/disks"]
+    - group: longhorn.io
+      kind: Volume
+      jsonPointers: ["/status"]
+    - group: longhorn.io
+      kind: Engine
+      jsonPointers: ["/status"]
+    - group: longhorn.io
+      kind: Replica
+      jsonPointers: ["/status"]
