@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: longhorn-config
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # After Longhorn installation
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+    targetRevision: main
+    path: clusters/homelab/manifests/longhorn-config
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: longhorn-system
+  syncPolicy:
+    automated:
+      prune: false  # Don't auto-prune infrastructure configs
+      selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
