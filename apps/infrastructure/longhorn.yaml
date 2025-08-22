@@ -23,9 +23,6 @@ spec:
     - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
       targetRevision: main
       ref: values
-    - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
-      targetRevision: main
-      path: clusters/homelab/manifests/longhorn-config
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system

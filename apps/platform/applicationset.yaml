@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ml-platform-services
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - name: localstack
+        chart: localstack
+        repo: https://helm.localstack.cloud
+        version: 0.6.17
+        values: localstack-values.yaml
+        namespace: localstack
+        syncWave: "0"
+      
+      - name: mlflow
+        repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+        path: clusters/homelab/manifests/mlflow
+        namespace: mlflow
+        syncWave: "1"
+
+  template:
+    metadata:
+      name: '{{name}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{syncWave}}'
+    spec:
+      project: default
+      {{if chart}}
+      sources:
+        - repoURL: '{{repo}}'
+          chart: '{{chart}}'
+          targetRevision: '{{version}}'
+          helm:
+            valueFiles:
+              - $values/clusters/homelab/values/{{values}}
+        - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+          targetRevision: main
+          ref: values
+      {{else}}
+      source:
+        repoURL: '{{repoURL}}'
+        targetRevision: main
+        path: '{{path}}'
+      {{end}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

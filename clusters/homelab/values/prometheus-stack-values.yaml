@@ -13,9 +13,9 @@ grafana:
     limits:
       cpu: 200m
       memory: 512Mi
-  # FIXED: Change to ClusterIP to avoid port conflicts
+  # Use ClusterIP to avoid port conflicts
   service:
-    type: ClusterIP  # Changed from LoadBalancer
+    type: ClusterIP
     port: 80
   nodeSelector:
     kubernetes.io/hostname: t495
@@ -33,94 +33,3 @@ grafana:
       - grafana.local
     path: /
     tls: []
-
-prometheus:
-  prometheusSpec:
-    retention: 15d
-    retentionSize: 10GB
-    resources:
-      requests:
-        cpu: 200m
-        memory: 1Gi
-      limits:
-        cpu: 500m
-        memory: 2Gi
-    storageSpec:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: longhorn
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 20Gi
-    nodeSelector:
-      kubernetes.io/hostname: t495
-    tolerations:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
-    # FIXED: Reduce scrape interval to avoid overload
-    additionalScrapeConfigs:
-    - job_name: 'localstack'
-      static_configs:
-      - targets: ['localstack.localstack.svc.cluster.local:4566']
-      metrics_path: '/_localstack/health'
-      scrape_interval: 60s  # Increased from 30s
-      scrape_timeout: 10s
-    - job_name: 'mlflow'
-      static_configs:
-      - targets: ['mlflow.mlflow.svc.cluster.local:5000']
-      metrics_path: '/metrics'
-      scrape_interval: 60s
-      scrape_timeout: 10s
-
-alertmanager:
-  alertmanagerSpec:
-    storage:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: longhorn
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 5Gi
-    resources:
-      requests:
-        cpu: 50m
-        memory: 128Mi
-      limits:
-        cpu: 100m
-        memory: 256Mi
-    nodeSelector:
-      kubernetes.io/hostname: t495
-    tolerations:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
-
-nodeExporter:
-  enabled: true
-  tolerations:
-    - key: node-role.kubernetes.io/control-plane
-      operator: Exists
-      effect: NoSchedule
-
-kubeStateMetrics:
-  enabled: true
-
-defaultRules:
-  create: true
-  rules:
-    alertmanager: true
-    etcd: false
-    configReloaders: true
-    general: true
-    k8s: true
-    kubernetesApps: true
-    kubernetesResources: true
-    kubernetesStorage: true
-    kubernetesSystem: true
-    node: true
-    nodeExporter: true
-    prometheus: true
-    prometheusOperator: true

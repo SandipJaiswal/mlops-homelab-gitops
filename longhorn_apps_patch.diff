@@ -1,0 +1,359 @@
+
+diff --git a/bootstrap/03-argocd-bootstrap.sh b/bootstrap/03-argocd-bootstrap.sh
+deleted file mode 100755
+index e69de29..0000000
+--- a/bootstrap/03-argocd-bootstrap.sh
++++ /dev/null
+@@ -1,50 +0,0 @@
+-# Removed: longhorn node config logic duplicated here.
+-# Use the PostSync job in clusters/homelab/manifests/longhorn/node-config-job.yaml instead.
+
+diff --git a/clusters/homelab/manifests/longhorn-config/node-config.yaml b/clusters/homelab/manifests/longhorn-config/node-config.yaml
+deleted file mode 100644
+index e69de29..0000000
+--- a/clusters/homelab/manifests/longhorn-config/node-config.yaml
++++ /dev/null
+@@ -1,30 +0,0 @@
+-# Removed duplicate Longhorn Node CR. The PostSync Job now manages node configuration.
+
+diff --git a/apps/infrastructure/longhorn-config.yaml b/apps/infrastructure/longhorn-config.yaml
+deleted file mode 100644
+index e69de29..0000000
+--- a/apps/infrastructure/longhorn-config.yaml
++++ /dev/null
+@@ -1,35 +0,0 @@
+-# Removed duplicate Longhorn config Application. Use apps/infrastructure/longhorn.yaml only.
+
+diff --git a/apps/infrastructure/longhorn.yaml b/apps/infrastructure/longhorn.yaml
+index abc1234..def5678 100644
+--- a/apps/infrastructure/longhorn.yaml
++++ b/apps/infrastructure/longhorn.yaml
+@@ -10,10 +10,13 @@
+   sources:
+     - repoURL: https://charts.longhorn.io
+       chart: longhorn
+       targetRevision: 1.6.2
+       helm:
+         valueFiles:
+           - $values/clusters/homelab/values/longhorn-values.yaml
+     - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+       targetRevision: main
+       ref: values
+-    - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+-      targetRevision: main
+-      path: clusters/homelab/manifests/longhorn-config
++    - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
++      targetRevision: main
++      path: clusters/homelab/manifests/longhorn
++      # includes PostSync Job for Longhorn node config
+
+diff --git a/clusters/homelab/manifests/mlflow/deployment.yaml b/clusters/homelab/manifests/mlflow/deployment.yaml
+index 1234567..7654321 100644
+--- a/clusters/homelab/manifests/mlflow/deployment.yaml
++++ b/clusters/homelab/manifests/mlflow/deployment.yaml
+@@ -20,15 +20,0 @@
+-      initContainers:
+-        - name: wait-for-storage
+-          image: busybox:1.36
+-          command:
+-            - sh
+-            - -c
+-            - >
+-              until kubectl get storageclass longhorn; do
+-                echo "Waiting for longhorn storageclass...";
+-                sleep 5;
+-              done
+-          resources:
+-            requests:
+-              cpu: 10m
+-              memory: 16Mi
+
+diff --git a/apps/applicationsets/dataservices-appset.yaml b/apps/applicationsets/dataservices-appset.yaml
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/apps/applicationsets/dataservices-appset.yaml
+@@ -0,0 +1,46 @@
++apiVersion: argoproj.io/v1alpha1
++kind: ApplicationSet
++metadata:
++  name: dataservices
++  namespace: argocd
++spec:
++  generators:
++    - list:
++        elements:
++          - name: minio
++            path: apps/data/minio
++            namespace: data
++          - name: postgresql
++            path: apps/data/postgresql
++            namespace: data
++          - name: redis
++            path: apps/data/redis
++            namespace: data
++  template:
++    metadata:
++      name: '{{name}}'
++      annotations:
++        argocd.argoproj.io/sync-wave: "2"
++    spec:
++      project: default
++      source:
++        repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
++        targetRevision: main
++        path: '{{path}}'
++      destination:
++        server: https://kubernetes.default.svc
++        namespace: '{{namespace}}'
++      syncPolicy:
++        automated:
++          prune: true
++          selfHeal: true
++        syncOptions:
++          - CreateNamespace=true
++
++
+diff --git a/apps/applicationsets/mlplatform-appset.yaml b/apps/applicationsets/mlplatform-appset.yaml
+new file mode 100644
+index 0000000..2222222
+--- /dev/null
++++ b/apps/applicationsets/mlplatform-appset.yaml
+@@ -0,0 +1,49 @@
++apiVersion: argoproj.io/v1alpha1
++kind: ApplicationSet
++metadata:
++  name: mlplatform
++  namespace: argocd
++spec:
++  generators:
++    - list:
++        elements:
++          - name: localstack
++            path: apps/platform/localstack
++            namespace: localstack
++            wave: "0"
++          - name: mlflow
++            path: apps/platform/mlflow
++            namespace: mlflow
++            wave: "2"
++          - name: jupyter
++            path: apps/platform/jupyter
++            namespace: jupyter
++            wave: "2"
++  template:
++    metadata:
++      name: '{{name}}'
++      annotations:
++        argocd.argoproj.io/sync-wave: '{{wave}}'
++    spec:
++      project: default
++      source:
++        repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
++        targetRevision: main
++        path: '{{path}}'
++      destination:
++        server: https://kubernetes.default.svc
++        namespace: '{{namespace}}'
++      syncPolicy:
++        automated:
++          prune: true
++          selfHeal: true
++        syncOptions:
++          - CreateNamespace=true
++
++
+diff --git a/clusters/homelab/manifests/scheduling/priority-classes.yaml b/clusters/homelab/manifests/scheduling/priority-classes.yaml
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/clusters/homelab/manifests/scheduling/priority-classes.yaml
+@@ -0,0 +1,26 @@
++apiVersion: scheduling.k8s.io/v1
++kind: PriorityClass
++metadata:
++  name: infra-critical
++value: 1000000000
++globalDefault: false
++description: "Critical infra components (Longhorn, MetalLB, Prometheus)."
++---
++apiVersion: scheduling.k8s.io/v1
++kind: PriorityClass
++metadata:
++  name: platform-high
++value: 900000000
++globalDefault: false
++description: "High-priority platform services (Localstack, MinIO, PostgreSQL)."
++---
++apiVersion: scheduling.k8s.io/v1
++kind: PriorityClass
++metadata:
++  name: workloads-normal
++value: 100000
++globalDefault: true
++description: "Default user/workload priority."
++
+
+diff --git a/clusters/homelab/manifests/resource-quotas/namespace-quotas.yaml b/clusters/homelab/manifests/resource-quotas/namespace-quotas.yaml
+index 4444444..5555555 100644
+--- a/clusters/homelab/manifests/resource-quotas/namespace-quotas.yaml
++++ b/clusters/homelab/manifests/resource-quotas/namespace-quotas.yaml
+@@ -1,10 +1,90 @@
+-# Old inconsistent quotas replaced
++apiVersion: v1
++kind: ResourceQuota
++metadata:
++  name: data-quota
++  namespace: data
++spec:
++  hard:
++    requests.cpu: "2"
++    requests.memory: 8Gi
++    limits.cpu: "4"
++    limits.memory: 16Gi
++    persistentvolumeclaims: "20"
++    requests.storage: 300Gi
++---
++apiVersion: v1
++kind: ResourceQuota
++metadata:
++  name: localstack-quota
++  namespace: localstack
++spec:
++  hard:
++    requests.cpu: "1"
++    requests.memory: 3Gi
++    limits.cpu: "2"
++    limits.memory: 6Gi
++    persistentvolumeclaims: "5"
++    requests.storage: 20Gi
++---
++apiVersion: v1
++kind: ResourceQuota
++metadata:
++  name: mlflow-quota
++  namespace: mlflow
++spec:
++  hard:
++    requests.cpu: "500m"
++    requests.memory: 1Gi
++    limits.cpu: "1"
++    limits.memory: 2Gi
++---
++apiVersion: v1
++kind: ResourceQuota
++metadata:
++  name: kubeflow-quota
++  namespace: kubeflow
++spec:
++  hard:
++    requests.cpu: "2"
++    requests.memory: 6Gi
++    limits.cpu: "4"
++    limits.memory: 12Gi
++    persistentvolumeclaims: "10"
++    requests.storage: 100Gi
++---
++apiVersion: v1
++kind: ResourceQuota
++metadata:
++  name: monitoring-quota
++  namespace: monitoring
++spec:
++  hard:
++    requests.cpu: "1"
++    requests.memory: 2Gi
++    limits.cpu: "2"
++    limits.memory: 4Gi
++    persistentvolumeclaims: "5"
++    requests.storage: 50Gi
++---
++apiVersion: v1
++kind: ResourceQuota
++metadata:
++  name: jupyter-quota
++  namespace: jupyter
++spec:
++  hard:
++    requests.cpu: "1"
++    requests.memory: 2Gi
++    limits.cpu: "3"
++    limits.memory: 6Gi
++    persistentvolumeclaims: "10"
++    requests.storage: 50Gi
+
+diff --git a/values/prometheus-stack-values.yaml b/values/prometheus-stack-values.yaml
+index 6666666..7777777 100644
+--- a/values/prometheus-stack-values.yaml
++++ b/values/prometheus-stack-values.yaml
+@@ -5,7 +5,10 @@ grafana:
+-  service:
+-    type: LoadBalancer
+-    port: 80
++  service:
++    type: ClusterIP
++  ingress:
++    enabled: true
++    ingressClassName: nginx
++    hosts:
++      - grafana.local
+
+diff --git a/values/docker-registry-values.yaml b/values/docker-registry-values.yaml
+index 8888888..9999999 100644
+--- a/values/docker-registry-values.yaml
++++ b/values/docker-registry-values.yaml
+@@ -1,7 +1,10 @@
+-service:
+-  type: LoadBalancer
+-  port: 5000
++service:
++  type: ClusterIP
++ingress:
++  enabled: true
++  ingressClassName: nginx
++  hosts:
++    - registry.local
+
+diff --git a/values/longhorn-values.yaml b/values/longhorn-values.yaml
+index aaa1111..bbb2222 100644
+--- a/values/longhorn-values.yaml
++++ b/values/longhorn-values.yaml
+@@ -1,6 +1,14 @@
+ defaultSettings:
+   guaranteedEngineManagerCPU: 12
+   guaranteedReplicaManagerCPU: 12
++
++longhornManager:
++  priorityClassName: infra-critical
++longhornDriver:
++  priorityClassName: infra-critical
++longhornUI:
++  priorityClassName: workloads-normal
++
+ 
+diff --git a/values/prometheus-stack-values.yaml b/values/prometheus-stack-values.yaml
+index 7777777..aaa3333 100644
+--- a/values/prometheus-stack-values.yaml
++++ b/values/prometheus-stack-values.yaml
+@@ -20,6 +20,9 @@ grafana:
+     hosts:
+       - grafana.local
++  priorityClassName: platform-high
++
++
+ prometheus:
+   prometheusSpec:
+     resources:
+@@ -30,6 +33,9 @@ prometheus:
+         memory: 2Gi
++    priorityClassName: infra-critical
++
++
+ alertmanager:
+   alertmanagerSpec:
+     resources:
+@@ -38,6 +44,9 @@ alertmanager:
+         memory: 512Mi
++    priorityClassName: infra-critical
++
++

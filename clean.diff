@@ -1,0 +1,36 @@
+diff --git a/bootstrap/03-argocd-bootstrap.sh b/bootstrap/03-argocd-bootstrap.sh
+deleted file mode 100755
+--- a/bootstrap/03-argocd-bootstrap.sh
++++ /dev/null
+@@ -1,10 +0,0 @@
+-# Removed: duplicate Longhorn node config logic. Use the PostSync job instead.
+
+diff --git a/clusters/homelab/manifests/longhorn-config/node-config.yaml b/clusters/homelab/manifests/longhorn-config/node-config.yaml
+deleted file mode 100644
+--- a/clusters/homelab/manifests/longhorn-config/node-config.yaml
++++ /dev/null
+@@ -1,10 +0,0 @@
+-# Removed duplicate Longhorn Node CR.
+
+diff --git a/apps/infrastructure/longhorn-config.yaml b/apps/infrastructure/longhorn-config.yaml
+deleted file mode 100644
+--- a/apps/infrastructure/longhorn-config.yaml
++++ /dev/null
+@@ -1,10 +0,0 @@
+-# Removed duplicate Longhorn Application. Use apps/infrastructure/longhorn.yaml only.
+
+diff --git a/apps/infrastructure/longhorn.yaml b/apps/infrastructure/longhorn.yaml
+--- a/apps/infrastructure/longhorn.yaml
++++ b/apps/infrastructure/longhorn.yaml
+@@ -15,9 +15,10 @@
+     - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+       targetRevision: main
+       ref: values
+-    - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+-      targetRevision: main
+-      path: clusters/homelab/manifests/longhorn-config
++    - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
++      targetRevision: main
++      path: clusters/homelab/manifests/longhorn
++      # includes PostSync Job for Longhorn node config
+

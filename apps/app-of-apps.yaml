@@ -4,7 +4,9 @@ metadata:
   name: homelab-infrastructure
   namespace: argocd
   finalizers:
-    - resources-finalizer.argocd.argoproj.io
+    - resources-finalizer.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   source:
@@ -30,7 +32,7 @@ metadata:
   name: homelab-data
   namespace: argocd
   finalizers:
-    - resources-finalizer.argocd.argoproj.io
+    - resources-finalizer.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
@@ -58,7 +60,7 @@ metadata:
   name: homelab-platform
   namespace: argocd
   finalizers:
-    - resources-finalizer.argocd.argoproj.io
+    - resources-finalizer.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
@@ -86,7 +88,7 @@ metadata:
   name: homelab-monitoring
   namespace: argocd
   finalizers:
-    - resources-finalizer.argocd.argoproj.io
+    - resources-finalizer.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
@@ -95,34 +97,6 @@ spec:
     repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
     targetRevision: main
     path: apps/monitoring
-    directory:
-      recurse: true
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: argocd
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - PrunePropagationPolicy=foreground
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: homelab-security
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-  annotations:
-    argocd.argoproj.io/sync-wave: "4"
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
-    targetRevision: main
-    path: apps/security
     directory:
       recurse: true
   destination:

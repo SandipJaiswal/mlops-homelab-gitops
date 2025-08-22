@@ -5,9 +5,9 @@ persistence:
     - ReadWriteOnce
   size: 20Gi
 
-# FIXED: Change to ClusterIP to avoid port conflicts
+# Use ClusterIP for internal access only
 service:
-  type: ClusterIP  # Changed from LoadBalancer
+  type: ClusterIP
   port: 5000
 
 resources:

@@ -26,33 +26,42 @@ spec:
         - |
           echo "Configuring Longhorn node disk..."
           
-          # Wait for Longhorn node to be detected
-          until kubectl get nodes.longhorn.io t495 -n longhorn-system; do
-            echo "Waiting for Longhorn node to be detected..."
+          # Wait for Longhorn API to be ready
+          until kubectl get crd nodes.longhorn.io; do
+            echo "Waiting for Longhorn CRDs..."
             sleep 10
           done
           
-          # Configure disk on the node
-          kubectl patch nodes.longhorn.io t495 -n longhorn-system --type='merge' -p='{
-            "spec": {
-              "disks": {
-                "default-disk": {
-                  "allowScheduling": true,
-                  "evictionRequested": false,
-                  "path": "/var/lib/longhorn",
-                  "storageReserved": 21474836480,
-                  "tags": []
-                }
-              }
-            }
-          }'
+          # Wait for Longhorn manager to be ready
+          until kubectl get pods -n longhorn-system -l app=longhorn-manager | grep -q Running; do
+            echo "Waiting for Longhorn manager..."
+            sleep 10
+          done
           
-          echo "✓ Longhorn node disk configured"
+          # Label node for Longhorn
+          kubectl label node t495 node.longhorn.io/create-default-disk=true --overwrite
           
-          # Restart longhorn manager to pick up changes
-          kubectl rollout restart daemonset/longhorn-manager -n longhorn-system
+          # Configure node with proper disk settings
+          cat <<EOF | kubectl apply -f -
+          apiVersion: longhorn.io/v1beta2
+          kind: Node
+          metadata:
+            name: t495
+            namespace: longhorn-system
+          spec:
+            allowScheduling: true
+            evictionRequested: false
+            disks:
+              default-disk:
+                allowScheduling: true
+                evictionRequested: false
+                path: /var/lib/longhorn
+                storageReserved: 21474836480
+                tags: []
+            tags: []
+          EOF
           
-          echo "✓ Longhorn manager restarted"
+          echo "✓ Longhorn node configuration completed"
           
         resources:
           requests:
@@ -73,15 +82,15 @@ kind: ClusterRole
 metadata:
   name: longhorn-node-config
 rules:
-- apiGroups: ["longhorn.io"]
+- apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get", "list", "patch", "update"]
-- apiGroups: ["apps"]
-  resources: ["daemonsets"]
-  verbs: ["get", "list", "patch", "update"]
-- apiGroups: ["apps"]
-  resources: ["daemonsets/status"]
-  verbs: ["get"]
+- apiGroups: ["longhorn.io"]
+  resources: ["nodes"]
+  verbs: ["get", "list", "create", "patch", "update"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
