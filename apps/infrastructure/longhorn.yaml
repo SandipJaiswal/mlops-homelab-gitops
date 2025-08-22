@@ -7,10 +7,6 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "0"
-    argocd.argoproj.io/sync-options: >
-      SkipDryRunOnMissingResource=true,
-      RespectIgnoreDifferences=true,
-      PrunePropagationPolicy=foreground
 spec:
   project: default
   sources:
@@ -23,12 +19,16 @@ spec:
     - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
       targetRevision: main
       ref: values
+    # ADD: Additional manifests for node configuration
+    - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+      targetRevision: main
+      path: clusters/homelab/manifests/longhorn-config
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system
   syncPolicy:
     automated:
-      prune: false  # Never auto-prune storage
+      prune: false
       selfHeal: false
     syncOptions:
       - CreateNamespace=true
