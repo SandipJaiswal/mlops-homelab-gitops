@@ -22,7 +22,7 @@ spec:
     namespace: longhorn-system
   syncPolicy:
     automated:
-      prune: false  # Never auto-prune storage
+      prune: false
       selfHeal: false
     syncOptions:
       - CreateNamespace=true

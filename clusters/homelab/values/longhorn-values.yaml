@@ -11,12 +11,9 @@ persistence:
   defaultClass: true
   defaultClassReplicaCount: 1
 
+# CRITICAL: Disable pre-upgrade job
 preUpgradeChecker:
-  jobEnabled: false  # Prevent upgrade conflicts
-# Disable pre-upgrade hook to avoid the service account race condition
-preUpgrade:
-  enabled: false
-
+  jobEnabled: false
 
 longhornManager:
   tolerations: []
@@ -33,3 +30,25 @@ resources:
   requests:
     cpu: 100m
     memory: 256Mi
+
+ingress:
+  enabled: false
+
+# Node configuration via Helm extraResources
+extraResources:
+  - apiVersion: longhorn.io/v1beta2
+    kind: Node
+    metadata:
+      name: t495  # Replace with your actual node name
+      namespace: longhorn-system
+    spec:
+      allowScheduling: true
+      evictionRequested: false
+      disks:
+        default-disk:
+          allowScheduling: true
+          evictionRequested: false
+          path: /var/lib/longhorn
+          storageReserved: 21474836480
+          tags: []
+      tags: []
