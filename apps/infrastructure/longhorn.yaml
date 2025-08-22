@@ -7,17 +7,13 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
-  source:
-    repoURL: https://charts.longhorn.io
-    chart: longhorn
-    targetRevision: 1.6.2
-    helm:
-      valueFiles:
-        - $values/clusters/homelab/values/longhorn-values.yaml
   sources:
     - repoURL: https://charts.longhorn.io
       chart: longhorn
       targetRevision: 1.6.2
+      helm:
+        valueFiles:
+          - $values/clusters/homelab/values/longhorn-values.yaml
     - repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
       targetRevision: main
       ref: values
@@ -34,6 +30,8 @@ spec:
     managedNamespaceMetadata:
       labels:
         pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/audit: privileged
+        pod-security.kubernetes.io/warn: privileged
   ignoreDifferences:
     - group: longhorn.io
       kind: Node
