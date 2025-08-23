@@ -11,3 +11,7 @@ preUpgradeChecker:
 priorityClassName: infrastructure-critical
 nodeSelector:
   kubernetes.io/hostname: t495
+defaultBackupStore:
+  pollInterval: "300s"
+  backupTarget: ""
+  backupTargetCredentialSecret: ""
