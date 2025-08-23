@@ -1,17 +1,23 @@
-persistence:
-  defaultClass: longhorn
-  defaultReplicaCount: 1
-  defaultDataLocality: 'best-effort'
-  reclaimPolicy: Retain
-  defaultClassReplicaCount: 1
-csi:
-  kubeletRootDir: /var/lib/kubelet
-preUpgradeChecker:
-  jobEnabled: false
-priorityClassName: infrastructure-critical
-nodeSelector:
-  kubernetes.io/hostname: t495
-defaultBackupStore:
-  pollInterval: "300s"
-  backupTarget: ""
-  backupTargetCredentialSecret: ""
+longhorn:
+  persistence:
+    defaultClass: true
+    defaultClassReplicaCount: 1
+    reclaimPolicy: Retain
+    defaultDataLocality: 'best-effort'
+  csi:
+    kubeletRootDir: /var/lib/kubelet
+  preUpgradeChecker:
+    jobEnabled: false
+  longhornManager:
+    priorityClass: infrastructure-critical
+    nodeSelector:
+      kubernetes.io/hostname: t495
+  longhornDriver:
+    priorityClass: infrastructure-critical
+    nodeSelector:
+      kubernetes.io/hostname: t495
+  longhornUI:
+    nodeSelector:
+      kubernetes.io/hostname: t495
+  defaultBackupStore:
+    enabled: false
