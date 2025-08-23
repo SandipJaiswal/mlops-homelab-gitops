@@ -1,5 +1,3 @@
-crds:
-  enabled: true
 controller:
   resources:
     limits:
@@ -10,3 +8,9 @@ speaker:
     limits:
       cpu: 100m
       memory: 200Mi
+ipPool:
+  name: homelab-pool
+  namespace: metallb-system
+  addresses:
+    - 192.168.1.240-192.168.1.259
+  protocol: layer2

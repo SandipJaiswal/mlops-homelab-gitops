@@ -1,0 +1,6 @@
+apiVersion: v2
+name: metallb
+description: MetalLB provides load balancing for Kubernetes clusters
+type: application
+version: 0.14.5
+appVersion: v0.14.5

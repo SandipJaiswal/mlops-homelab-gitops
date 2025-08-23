@@ -1,0 +1,180 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: longhorn-manager
+  namespace: longhorn-system
+  labels:
+    app: longhorn-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: longhorn-manager
+  template:
+    metadata:
+      labels:
+        app: longhorn-manager
+    spec:
+      priorityClassName: {{ .Values.priorityClassName }}
+      nodeSelector:
+        kubernetes.io/hostname: {{ .Values.nodeSelector }}
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+        - name: longhorn-manager
+          image: rancher/longhorn-manager:v1.9.1
+          env:
+            - name: LONGHORN_NAMESPACE
+              value: longhorn-system
+            - name: DEFAULT_BACKUPSTORE_POLL_INTERVAL
+              value: "{{ .Values.defaultBackupStore.pollInterval }}"
+            - name: DEFAULT_BACKUPSTORE_URL
+              value: "{{ .Values.defaultBackupStore.backupTarget }}"
+            - name: DEFAULT_BACKUPSTORE_CREDENTIAL_SECRET
+              value: "{{ .Values.defaultBackupStore.backupTargetCredentialSecret }}"
+          volumeMounts:
+            - name: longhorn-config
+              mountPath: /etc/longhorn
+            - name: kubelet-root-dir
+              mountPath: {{ .Values.csi.kubeletRootDir }}
+      volumes:
+        - name: longhorn-config
+          emptyDir: {}
+        - name: kubelet-root-dir
+          hostPath:
+            path: {{ .Values.csi.kubeletRootDir }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: longhorn-service-account
+  namespace: longhorn-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: longhorn-role
+rules:
+- apiGroups:
+  - "*"
+  resources:
+  - "*"
+  verbs:
+  - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: longhorn-role-binding
+subjects:
+- kind: ServiceAccount
+  name: longhorn-service-account
+  namespace: longhorn-system
+roleRef:
+  kind: ClusterRole
+  name: longhorn-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: longhorn-engine-manager
+  namespace: longhorn-system
+  labels:
+    app: longhorn-engine-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
+spec:
+  selector:
+    matchLabels:
+      app: longhorn-engine-manager
+  template:
+    metadata:
+      labels:
+        app: longhorn-engine-manager
+    spec:
+      serviceAccountName: longhorn-service-account
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+        - name: longhorn-engine-manager
+          image: rancher/longhorn-engine:v1.9.1
+          volumeMounts:
+            - name: kubelet-root-dir
+              mountPath: {{ .Values.csi.kubeletRootDir }}
+      volumes:
+        - name: kubelet-root-dir
+          hostPath:
+            path: {{ .Values.csi.kubeletRootDir }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: longhorn-instance-manager
+  namespace: longhorn-system
+  labels:
+    app: longhorn-instance-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
+spec:
+  selector:
+    matchLabels:
+      app: longhorn-instance-manager
+  template:
+    metadata:
+      labels:
+        app: longhorn-instance-manager
+    spec:
+      serviceAccountName: longhorn-service-account
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+        - name: longhorn-instance-manager
+          image: rancher/longhorn-instance-manager:v1.9.1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: longhorn-ui
+  namespace: longhorn-system
+  labels:
+    app: longhorn-ui
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: longhorn-ui
+  template:
+    metadata:
+      labels:
+        app: longhorn-ui
+    spec:
+      serviceAccountName: longhorn-service-account
+      containers:
+        - name: longhorn-ui
+          image: rancher/longhorn-ui:v1.9.1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: longhorn-frontend
+  namespace: longhorn-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: longhorn-ui

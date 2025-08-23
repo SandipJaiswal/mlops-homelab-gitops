@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metallb-controller
+  namespace: metallb-system
+  labels:
+    app: metallb-controller
+  annotations:
+    argocd.argoproj.io/sync-wave: "-90"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metallb-controller
+  template:
+    metadata:
+      labels:
+        app: metallb-controller
+    spec:
+      containers:
+        - name: metallb-controller
+          image: metallb/controller:v0.14.5
+          args:
+            - --ip-address-pool={{ .Values.ipPool.name }}
+            - --protocol={{ .Values.ipPool.protocol }}
+          resources:
+            limits:
+              cpu: {{ .Values.controller.resources.limits.cpu }}
+              memory: {{ .Values.controller.resources.limits.memory }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: metallb-speaker
+  namespace: metallb-system
+  labels:
+    app: metallb-speaker
+  annotations:
+    argocd.argoproj.io/sync-wave: "-90"
+spec:
+  selector:
+    matchLabels:
+      app: metallb-speaker
+  template:
+    metadata:
+      labels:
+        app: metallb-speaker
+    spec:
+      containers:
+        - name: metallb-speaker
+          image: metallb/speaker:v0.14.5
+          args:
+            - --ip-address-pool={{ .Values.ipPool.name }}
+            - --protocol={{ .Values.ipPool.protocol }}
+          resources:
+            limits:
+              cpu: {{ .Values.speaker.resources.limits.cpu }}
+              memory: {{ .Values.speaker.resources.limits.memory }}
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: {{ .Values.ipPool.name }}
+  namespace: {{ .Values.ipPool.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-90"
+spec:
+  addresses:
+    - {{ .Values.ipPool.addresses }}
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: homelab-l2
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-90"
+spec:
+  ipAddressPools:
+    - homelab-pool

@@ -1,15 +1,13 @@
+persistence:
+  defaultClass: longhorn
+  defaultReplicaCount: 1
+  defaultDataLocality: 'best-effort'
+  reclaimPolicy: Retain
+  defaultClassReplicaCount: 1
+csi:
+  kubeletRootDir: /var/lib/kubelet
 preUpgradeChecker:
   jobEnabled: false
-defaultSettings:
-  defaultReplicaCount: 1
-  replicaSoftAntiAffinity: false
-  storageOverProvisioningPercentage: 200
-  upgradeChecker: false
-  defaultDataPath: /var/lib/longhorn
-persistence:
-  defaultClass: true
-  defaultClassReplicaCount: 1
-longhornManager:
-  priorityClass: infrastructure-critical
-  nodeSelector:
-    kubernetes.io/hostname: t495
+priorityClassName: infrastructure-critical
+nodeSelector:
+  kubernetes.io/hostname: t495
