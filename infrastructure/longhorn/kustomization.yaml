@@ -7,3 +7,5 @@ helmCharts:
   releaseName: longhorn
   namespace: longhorn-system
   valuesFile: values.yaml
+resources:
+  - post-install/node-config-job.yaml  # Add this line

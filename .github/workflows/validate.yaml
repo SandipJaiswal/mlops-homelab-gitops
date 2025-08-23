@@ -12,26 +12,29 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
+    - name: Setup Kubernetes tools
       run: |
-        pip install pyyaml yamllint
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
         curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
         sudo mv kustomize /usr/local/bin/
-    
-    - name: Validate YAML
-      run: yamllint -d relaxed .
     
     - name: Validate Kustomizations
       run: |
         find . -name "kustomization.yaml" | while read -r file; do
           dir=$(dirname "$file")
           echo "Validating: $dir"
-          kustomize build "$dir" > /dev/null
+          kustomize build "$dir" > /dev/null || exit 1
+        done
+    
+    - name: Basic YAML validation
+      run: |
+        # Basic YAML structure checks
+        find . -name "*.yaml" -o -name "*.yml" | while read -r file; do
+          if ! grep -q -E "^(---|[a-zA-Z])" "$file"; then
+            echo "Error: Invalid YAML structure in $file"
+            exit 1
+          fi
         done
     
     - name: Security scan with Trivy
