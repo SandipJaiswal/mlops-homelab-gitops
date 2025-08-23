@@ -1,20 +1,34 @@
 #!/bin/bash
 set -euo pipefail
 
+# --- Constants ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# --- Configuration ---
 NODE_NAME="t495"
 
+# --- Functions ---
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1"
 }
 
-log "Installing K3s with resource optimization..."
+error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+    exit 1
+}
 
-if command -v k3s &> /dev/null; then
-    log "K3s is already installed"
-    k3s --version
-else
+install_k3s() {
+    log "Installing K3s..."
+    if command -v k3s &> /dev/null; then
+        log "K3s is already installed. Skipping installation."
+        k3s --version
+        return
+    fi
+
     curl -sfL https://get.k3s.io | sh -s - \
-        --node-name=${NODE_NAME} \
+        --node-name="${NODE_NAME}" \
         --disable local-storage \
         --disable metrics-server \
         --flannel-backend=host-gw \
@@ -22,22 +36,34 @@ else
         --kube-proxy-arg=metrics-bind-address=0.0.0.0 \
         --kube-scheduler-arg=bind-address=0.0.0.0 \
         --kubelet-arg=max-pods=250 \
-        --kubelet-arg=eviction-hard="memory.available<2Gi" \
-        --kubelet-arg=system-reserved="cpu=500m,memory=1Gi" \
-        --kubelet-arg=kube-reserved="cpu=500m,memory=1Gi" \
+        --kubelet-arg=eviction-hard="memory.available<1Gi" \
         --write-kubeconfig-mode=644
-fi
+}
 
-# Setup kubeconfig
-mkdir -p ~/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-sudo chown $(id -u):$(id -g) ~/.kube/config
+configure_kubectl() {
+    log "Configuring kubectl..."
+    mkdir -p ~/.kube
+    sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+    sudo chown $(id -u):$(id -g) ~/.kube/config
+}
 
-# Wait for node
-kubectl wait --for=condition=Ready node/${NODE_NAME} --timeout=300s
+label_node() {
+    log "Labeling node..."
+    kubectl label node "${NODE_NAME}" node-role.kubernetes.io/worker=true --overwrite
+}
 
-# Label node
-kubectl label node ${NODE_NAME} node-role.kubernetes.io/worker=true --overwrite
-kubectl label node ${NODE_NAME} kubernetes.io/hostname=${NODE_NAME} --overwrite
+wait_for_node_ready() {
+    log "Waiting for node to be ready..."
+    kubectl wait --for=condition=Ready node/"${NODE_NAME}" --timeout=300s
+}
 
-log "✓ K3s installed and configured"
+main() {
+    install_k3s
+    configure_kubectl
+    wait_for_node_ready
+    label_node
+    log "✓ K3s installation and configuration completed successfully"
+}
+
+# --- Main ---
+main

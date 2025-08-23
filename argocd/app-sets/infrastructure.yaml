@@ -5,23 +5,23 @@ metadata:
   namespace: argocd
 spec:
   generators:
-  - list:
-      elements:
-      - name: namespaces
-        path: infrastructure/base/namespaces
-        wave: "-100"
-      - name: priority-classes
-        path: infrastructure/base/resource-management
-        wave: "-90"
-      - name: longhorn
-        path: infrastructure/longhorn
-        wave: "-50"
-      - name: metallb
-        path: infrastructure/metallb
-        wave: "-40"
-      - name: traefik
-        path: infrastructure/ingress
-        wave: "-20"
+    - list:
+        elements:
+          - name: namespaces
+            path: infrastructure/base/namespaces
+            wave: "-100"
+          - name: priority-classes
+            path: infrastructure/base/resource-management
+            wave: "-90"
+          - name: longhorn
+            path: infrastructure/longhorn
+            wave: "-50"
+          - name: metallb
+            path: infrastructure/metallb
+            wave: "-40"
+          - name: traefik
+            path: infrastructure/ingress
+            wave: "-30"
   template:
     metadata:
       name: '{{name}}'
@@ -42,9 +42,3 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
-        retry:
-          limit: 5
-          backoff:
-            duration: 5s
-            factor: 2
-            maxDuration: 3m

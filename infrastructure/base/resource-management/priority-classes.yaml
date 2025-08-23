@@ -14,14 +14,14 @@ value: 900
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
-  name: ml-platform
-value: 800
+  name: kubeflow-critical
+value: 850
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
-  name: kubeflow-critical
-value: 850
+  name: ml-platform
+value: 800
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
