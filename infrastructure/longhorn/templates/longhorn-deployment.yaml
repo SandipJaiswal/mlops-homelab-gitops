@@ -26,7 +26,7 @@ spec:
         effect: NoSchedule
       containers:
         - name: longhorn-manager
-          image: rancher/longhorn-manager:v1.9.1
+          image: rancher/longhorn-manager:v1.7.2
           env:
             - name: LONGHORN_NAMESPACE
               value: longhorn-system
@@ -104,7 +104,7 @@ spec:
         effect: NoSchedule
       containers:
         - name: longhorn-engine-manager
-          image: rancher/longhorn-engine:v1.9.1
+          image: rancher/longhorn-engine:v1.7.2
           volumeMounts:
             - name: kubelet-root-dir
               mountPath: {{ .Values.csi.kubeletRootDir }}
@@ -138,7 +138,7 @@ spec:
         effect: NoSchedule
       containers:
         - name: longhorn-instance-manager
-          image: rancher/longhorn-instance-manager:v1.9.1
+          image: rancher/longhorn-instance-manager:v1.7.2
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -162,7 +162,7 @@ spec:
       serviceAccountName: longhorn-service-account
       containers:
         - name: longhorn-ui
-          image: rancher/longhorn-ui:v1.9.1
+          image: rancher/longhorn-ui:v1.7.2
 ---
 apiVersion: v1
 kind: Service
