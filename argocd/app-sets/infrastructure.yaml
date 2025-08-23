@@ -21,7 +21,7 @@ spec:
         wave: "-40"
       - name: traefik
         path: infrastructure/ingress
-        wave: "-30"
+        wave: "-20"
   template:
     metadata:
       name: '{{name}}'
@@ -42,3 +42,9 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

@@ -10,11 +10,15 @@ log "Installing system prerequisites..."
 # Update system
 sudo apt update && sudo apt upgrade -y
 
-# Install required packages using apt (only available packages)
+# Install required packages
 sudo apt install -y \
     curl wget git jq bc \
     open-iscsi nfs-common \
-    software-properties-common
+    software-properties-common \
+    python3-pip
+
+# Install Python packages
+sudo apt install -y python3-yaml yamllint
 
 # Configure kernel parameters
 cat << SYSCTL | sudo tee /etc/sysctl.d/90-k3s.conf
@@ -41,4 +45,3 @@ sudo swapoff -a
 sudo sed -i '/ swap / s/^/#/' /etc/fstab
 
 log "✓ Prerequisites installed"
-log "✓ No Python packages required for basic setup"

@@ -10,12 +10,6 @@ spec:
       - name: mlflow
         namespace: mlflow
         wave: "20"
-      - name: jupyterhub
-        namespace: jupyter
-        wave: "30"
-      - name: localstack
-        namespace: localstack
-        wave: "25"
   template:
     metadata:
       name: '{{name}}'

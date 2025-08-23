@@ -16,9 +16,6 @@ spec:
       - name: minio
         namespace: data
         wave: "10"
-      - name: docker-registry
-        namespace: data
-        wave: "10"
   template:
     metadata:
       name: '{{name}}'
@@ -39,3 +36,9 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 5m

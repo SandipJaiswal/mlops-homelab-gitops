@@ -5,8 +5,26 @@ controller:
     limits:
       cpu: 100m
       memory: 200Mi
+    requests:
+      cpu: 50m
+      memory: 100Mi
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
 speaker:
   resources:
     limits:
       cpu: 100m
       memory: 200Mi
+    requests:
+      cpu: 50m
+      memory: 100Mi
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule

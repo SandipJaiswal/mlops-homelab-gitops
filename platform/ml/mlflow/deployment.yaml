@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: mlflow
   namespace: mlflow
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
 spec:
   replicas: 1
   selector:
@@ -22,11 +24,11 @@ spec:
         effect: NoSchedule
       initContainers:
       - name: wait-for-postgres
-        image: busybox:1.35
-        command: ['sh', '-c', 'until nc -z postgresql.data.svc.cluster.local 5432; do sleep 5; done']
-      - name: wait-for-minio
-        image: busybox:1.35
-        command: ['sh', '-c', 'until nc -z minio.data.svc.cluster.local 9000; do sleep 5; done']
+        image: postgres:15-alpine
+        command: ['sh', '-c', 'until pg_isready -h postgresql.data.svc.cluster.local -p 5432 -U mlflow; do sleep 5; done']
+        env:
+        - name: PGPASSWORD
+          value: "mlflowpw"
       containers:
       - name: mlflow
         image: ghcr.io/mlflow/mlflow:2.14.1
@@ -42,7 +44,7 @@ spec:
         - name: AWS_SECRET_ACCESS_KEY
           value: "minio123"
         - name: MLFLOW_S3_ENDPOINT_URL
-          value: "http://minio.data.svc.cluster.local:9000"
+          value: "http://192.168.1.241:9000"
         - name: AWS_DEFAULT_REGION
           value: "us-east-1"
         command: ["mlflow", "server"]
@@ -63,11 +65,11 @@ spec:
           httpGet:
             path: /health
             port: 5000
-          initialDelaySeconds: 60
+          initialDelaySeconds: 120
           periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /health
             port: 5000
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
