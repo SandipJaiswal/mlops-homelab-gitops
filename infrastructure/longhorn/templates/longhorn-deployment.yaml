@@ -19,7 +19,7 @@ spec:
     spec:
       priorityClassName: {{ .Values.priorityClassName }}
       nodeSelector:
-        kubernetes.io/hostname: {{ .Values.nodeSelector }}
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
       tolerations:
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
