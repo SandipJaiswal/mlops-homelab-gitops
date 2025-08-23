@@ -1,0 +1,12 @@
+crds:
+  enabled: true
+controller:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 200Mi
+speaker:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 200Mi

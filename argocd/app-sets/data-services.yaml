@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: data-services
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - name: postgresql
+        namespace: data
+        wave: "0"
+      - name: redis
+        namespace: data
+        wave: "0"
+      - name: minio
+        namespace: data
+        wave: "10"
+      - name: docker-registry
+        namespace: data
+        wave: "10"
+  template:
+    metadata:
+      name: '{{name}}'
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{wave}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+        targetRevision: main
+        path: 'platform/data/{{name}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

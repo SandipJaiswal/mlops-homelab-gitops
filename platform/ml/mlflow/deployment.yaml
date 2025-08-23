@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      priorityClassName: ml-platform
+      nodeSelector:
+        kubernetes.io/hostname: t495
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z postgresql.data.svc.cluster.local 5432; do sleep 5; done']
+      - name: wait-for-minio
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z minio.data.svc.cluster.local 9000; do sleep 5; done']
+      containers:
+      - name: mlflow
+        image: ghcr.io/mlflow/mlflow:2.14.1
+        ports:
+        - containerPort: 5000
+        env:
+        - name: BACKEND_STORE_URI
+          value: "postgresql://mlflow:mlflowpw@postgresql.data.svc.cluster.local:5432/mlflow"
+        - name: ARTIFACT_ROOT
+          value: "s3://mlflow/"
+        - name: AWS_ACCESS_KEY_ID
+          value: "minio"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "minio123"
+        - name: MLFLOW_S3_ENDPOINT_URL
+          value: "http://minio.data.svc.cluster.local:9000"
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        command: ["mlflow", "server"]
+        args:
+        - "--backend-store-uri=$(BACKEND_STORE_URI)"
+        - "--default-artifact-root=$(ARTIFACT_ROOT)"
+        - "--host=0.0.0.0"
+        - "--port=5000"
+        - "--serve-artifacts"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10

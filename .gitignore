@@ -1,0 +1,41 @@
+# Secrets
+*.key
+*.pem
+*.crt
+*secret*
+!*secret*.yaml
+
+# Backups
+backups/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.bak
+*.backup
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Kubeflow
+kubeflow-manifests/
+
+# Logs
+*.log

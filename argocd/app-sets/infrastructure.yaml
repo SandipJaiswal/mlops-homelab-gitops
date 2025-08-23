@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: infrastructure
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - name: namespaces
+        path: infrastructure/base/namespaces
+        wave: "-100"
+      - name: priority-classes
+        path: infrastructure/base/resource-management
+        wave: "-90"
+      - name: longhorn
+        path: infrastructure/longhorn
+        wave: "-50"
+      - name: metallb
+        path: infrastructure/metallb
+        wave: "-40"
+      - name: traefik
+        path: infrastructure/ingress
+        wave: "-30"
+  template:
+    metadata:
+      name: '{{name}}'
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{wave}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/SandipJaiswal/mlops-homelab-gitops
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{name}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

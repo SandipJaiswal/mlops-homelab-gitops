@@ -1,0 +1,36 @@
+loki:
+  enabled: true
+  priorityClassName: monitoring
+  persistence:
+    enabled: true
+    storageClassName: longhorn
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+promtail:
+  enabled: true
+  priorityClassName: monitoring
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+grafana:
+  enabled: false  # Using kube-prometheus-stack Grafana

@@ -1,0 +1,66 @@
+hub:
+  config:
+    JupyterHub:
+      authenticator_class: dummy
+    DummyAuthenticator:
+      password: jupyter123
+  priorityClassName: ml-platform
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+proxy:
+  secretToken: "20d56d22a7e2e48a8fcd3aa04a8baee8aa69edac9caa744f71de44438fbb4866"
+  service:
+    type: ClusterIP
+  https:
+    enabled: false
+  chp:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+singleuser:
+  image:
+    name: jupyter/datascience-notebook
+    tag: latest
+  defaultUrl: "/lab"
+  storage:
+    type: dynamic
+    dynamic:
+      storageClass: longhorn
+      pvcNameTemplate: claim-{username}{servername}
+      volumeNameTemplate: volume-{username}{servername}
+      storageAccessModes: [ReadWriteOnce]
+    capacity: 10Gi
+  cpu:
+    guarantee: 0.1
+    limit: 2
+  memory:
+    guarantee: 512M
+    limit: 4G
+  extraEnv:
+    MLFLOW_TRACKING_URI: "http://mlflow.mlflow.svc.cluster.local:5000"
+    AWS_ENDPOINT_URL: "http://minio.data.svc.cluster.local:9000"
+    AWS_ACCESS_KEY_ID: "minio"
+    AWS_SECRET_ACCESS_KEY: "minio123"
+scheduling:
+  userScheduler:
+    enabled: false
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  hosts:
+  - jupyter.local

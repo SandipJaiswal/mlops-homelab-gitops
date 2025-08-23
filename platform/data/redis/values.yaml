@@ -1,0 +1,24 @@
+auth:
+  enabled: false
+architecture: standalone
+master:
+  priorityClassName: data-services
+  persistence:
+    enabled: true
+    storageClass: longhorn
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  nodeSelector:
+    kubernetes.io/hostname: t495
+  tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+metrics:
+  enabled: true
